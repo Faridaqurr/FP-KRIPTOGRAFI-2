@@ -191,27 +191,4 @@ Input text: "© 2024 Company Name"
 Input text: "My Photography"
 ```
 
-# STEGANO
-
-`stegano.py` adalah modul Python yang memungkinkan pengguna untuk **menyisipkan teks atau gambar rahasia ke dalam gambar lain** (cover image) menggunakan teknik **Least Significant Bit (LSB)**. Versi ini menggunakan **buffer dan delimiter unik** untuk menjamin ekstraksi pesan secara aman dan akurat.
-
-
-## Fitur
-
-- Menyembunyikan **teks** dalam gambar.
-- Menyembunyikan **gambar biner (hitam-putih)** dalam gambar.
-- Menggunakan **delimiter 3-byte unik** sebagai penanda akhir pesan.
-- Dapat mengembalikan pesan atau gambar yang disisipkan dengan akurat.
-- Implementasi dengan buffer untuk ekstraksi bit yang efisien dan aman.
-
-
-## Cara Kerja Singkat
-
-- Setiap piksel RGB menyimpan **3 bit pesan rahasia**: 1 di R, 1 di G, dan 1 di B.
-- Setelah semua bit pesan disisipkan, ditambahkan **delimiter**: `111111111111000000001111`.
-- Saat membaca kembali, proses ekstraksi terus berjalan hingga **delimiter** ditemukan.
-- Untuk gambar, dimasukkan metadata (ukuran gambar) di awal stream.
-
-
-
 ## PROGRAM LAIN
