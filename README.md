@@ -43,79 +43,152 @@ Rumus PSNR (yang diimplementasikan oleh `scikit-image`):
 - **MAX** adalah nilai maksimum piksel (255 untuk gambar 8-bit).
 - **MSE (Mean Squared Error)** adalah rata-rata kuadrat perbedaan antar piksel gambar.
 
-# 🖋️ Fitur Watermark
+## Fitur Watermarking
 
 ## Deskripsi
-Menambahkan teks watermark semi-transparan pada gambar secara otomatis di sudut kanan bawah.
+Fitur watermarking pada Tab 3 aplikasi Kriptografi Media Suite yang menambahkan teks identitas semi-transparan pada gambar secara otomatis.
 
-## Fitur Utama
-- **Posisi otomatis**: Sudut kanan bawah dengan margin 20px
-- **Ukuran responsif**: Font menyesuaikan ukuran gambar
-- **Semi-transparan**: 50% transparansi warna merah
-- **Multi-format**: Mendukung PNG, JPG, JPEG
+## Cara Kerja di Streamlit
 
-## Cara Kerja
-
-### 1. Konversi Format
+### 1. Interface User
 ```python
-watermark = image.convert("RGBA")  # Untuk transparansi
+with tab3:
+    st.subheader("🖋️ Tambahkan Watermark ke Gambar")
+    wm_file = st.file_uploader("📥 Upload Gambar", type=["png", "jpg", "jpeg"], key="wm")
+    watermark_text = st.text_input("✍️ Teks Watermark (Contoh: Nama/NIM/Kelas)")
 ```
 
-### 2. Buat Layer Teks
+**Input yang diperlukan:**
+- **File gambar**: Format PNG, JPG, atau JPEG
+- **Teks watermark**: String bebas (nama, NIM, kelas, dll)
+
+### 2. Processing Logic
+```python
+if wm_file and watermark_text:
+    try:
+        img = Image.open(wm_file)
+        watermarked = add_watermark(img, watermark_text)
+        st.image(watermarked, caption="📌 Gambar dengan Watermark", use_container_width=True)
+        
+        buf = io.BytesIO()
+        watermarked.save(buf, format="PNG")
+        st.download_button("⬇️ Unduh Gambar Watermark", buf.getvalue(), file_name="watermarked.png")
+    except Exception as e:
+        st.error(f"❌ Error: {str(e)}")
+```
+
+**Alur proses:**
+1. **Validasi input**: Cek file dan teks tersedia
+2. **Load gambar**: Buka file menggunakan PIL
+3. **Apply watermark**: Panggil fungsi `add_watermark()`
+4. **Preview**: Tampilkan hasil di interface
+5. **Download**: Siapkan buffer untuk download
+6. **Error handling**: Tangkap dan tampilkan error
+
+## Fungsi Core: `add_watermark()`
+
+### Parameter
+- `image`: Object PIL Image
+- `text`: String teks watermark
+
+### Step-by-Step Implementation
+
+#### 1. Persiapan Canvas
+```python
+watermark = image.convert("RGBA")
+width, height = watermark.size
+```
+- Convert ke RGBA untuk support transparansi
+- Ambil dimensi gambar untuk perhitungan posisi
+
+#### 2. Buat Layer Transparan
 ```python
 txt_layer = Image.new("RGBA", watermark.size, (255, 255, 255, 0))
+draw = ImageDraw.Draw(txt_layer)
 ```
+- Layer baru dengan background transparan penuh
+- Object drawing untuk render teks
 
-### 3. Hitung Ukuran Font
+#### 3. Setup Font
 ```python
-font_size = int(min(width, height) / 20)  # 1/20 dari dimensi terkecil
+font_size = int(min(width, height) / 20)
+try:
+    font = ImageFont.truetype("arial.ttf", font_size)
+except:
+    font = ImageFont.load_default()
 ```
+- Ukuran font = 1/20 dari dimensi terkecil
+- Fallback ke font default jika Arial tidak ada
 
-### 4. Posisi Teks
+#### 4. Hitung Posisi
 ```python
-x, y = width - textwidth - 20, height - textheight - 20  # Sudut kanan bawah
+bbox = draw.textbbox((0, 0), text, font=font)
+textwidth = bbox[2] - bbox[0]
+textheight = bbox[3] - bbox[1]
+x, y = width - textwidth - 20, height - textheight - 20
 ```
+- Gunakan `textbbox()` untuk akurasi pengukuran
+- Posisi 20 pixel dari sudut kanan bawah
+- Mencegah teks terpotong
 
-### 5. Render Watermark
+#### 5. Render Watermark
 ```python
-draw.text((x, y), text, font=font, fill=(255, 0, 0, 128))  # Merah 50% transparan
+draw.text((x, y), text, font=font, fill=(255, 0, 0, 128))
 ```
+- Warna merah (#FF0000) dengan alpha 128 (50% transparan)
+- Posisi sudah dihitung sebelumnya
 
-## Penggunaan
-
-### Di Streamlit
+#### 6. Gabung Layer
 ```python
-watermarked = add_watermark(image, "Nama - NIM - Kelas")
+combined = Image.alpha_composite(watermark, txt_layer)
+return combined.convert("RGB")
 ```
+- Composite layer watermark dengan layer teks
+- Convert ke RGB untuk compatibility
 
-### Standalone
-```python
-from watermark import add_watermark
-from PIL import Image
+## Spesifikasi Teknis
 
-img = Image.open("gambar.png")
-result = add_watermark(img, "Watermark Text")
-result.save("output.png")
-```
+| Parameter | Nilai | Keterangan |
+|-----------|-------|------------|
+| **Posisi** | Kanan bawah | Margin 20px dari tepi |
+| **Warna** | Merah (#FF0000) | Kontras tinggi |
+| **Transparansi** | 50% (alpha=128) | Balance visible-subtle |
+| **Font Size** | min(w,h)/20 | Responsif ukuran gambar |
+| **Font** | Arial → Default | Fallback otomatis |
+| **Format Output** | PNG | Via BytesIO buffer |
 
-## Spesifikasi
+## User Experience
 
-| Aspek | Detail |
-|-------|--------|
-| **Posisi** | Sudut kanan bawah (margin 20px) |
-| **Warna** | Merah (#FF0000) |
-| **Transparansi** | 50% (alpha=128) |
-| **Font** | Arial (fallback: default) |
-| **Ukuran Font** | 1/20 dimensi terkecil gambar |
+### Input Validation
+- **File types**: PNG, JPG, JPEG supported
+- **Required fields**: File dan teks harus diisi
+- **Real-time preview**: Hasil langsung ditampilkan
 
-## Dependencies
-```
-PIL (Pillow) - Image processing
-```
+### Output Features
+- **Preview image**: Tampilan container width penuh
+- **Download button**: Otomatis muncul setelah processing
+- **File naming**: "watermarked.png" sebagai default
+
+### Error Handling
+- **Try-catch wrapper**: Semua error tertangkap
+- **User-friendly message**: Error dengan emoji dan format jelas
+- **Graceful failure**: Aplikasi tetap berjalan meski ada error
 
 ## Contoh Penggunaan
-- Tugas kuliah: "Nama - 123456789 - Kelas A"
-- Foto pribadi: "© 2024 Your Name"
-- Dokumen: "CONFIDENTIAL"
+
+### Akademik
+```
+Input text: "John Doe - 1234567890 - Kelas A"
+```
+
+### Professional  
+```
+Input text: "© 2024 Company Name"
+```
+
+### Personal
+```
+Input text: "My Photography"
+```
 
 ## PROGRAM LAIN
