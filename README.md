@@ -22,27 +22,25 @@ Anggota Kelompok :
  
 # Penjelasan Sistem Kriptografi Visual & Enkripsi dalam Media
 
-## Penghitung PSNR (Peak Signal-to-Noise Ratio) dengan Python
-Proyek ini menyediakan fungsi Python sederhana untuk menghitung **PSNR (Peak Signal-to-Noise Ratio)** antara dua gambar menggunakan pustaka `PIL (Pillow)` dan `NumPy`. PSNR biasa digunakan untuk mengukur kualitas gambar hasil kompresi atau rekonstruksi dibandingkan dengan gambar aslinya.
+## PSNR PROGRAM
+
+Proyek ini menyediakan fungsi Python untuk menghitung **PSNR (Peak Signal-to-Noise Ratio)** antara dua gambar digital — biasanya digunakan untuk membandingkan gambar asli dengan gambar hasil steganografi, kompresi, atau rekonstruksi.
 
 ### Fitur
 
-- Menerima dua input gambar (berformat `PIL.Image`).
-- Mengubah ukuran gambar kedua agar sama dengan gambar pertama.
-- Mengonversi kedua gambar menjadi RGB untuk konsistensi.
-- Mengembalikan nilai PSNR dalam satuan desibel (dB).
+- Menghitung nilai PSNR secara akurat menggunakan pustaka **`scikit-image`**.
+- Validasi otomatis terhadap **ukuran dan mode warna** gambar (harus sama dan berformat RGB).
+- Memberikan pesan kesalahan jika gambar tidak sesuai.
+
+###  Apa Itu PSNR?
+
+**PSNR (Peak Signal-to-Noise Ratio)** adalah metrik umum untuk mengukur kualitas rekonstruksi gambar. Biasanya digunakan untuk menilai seberapa mirip gambar hasil manipulasi (seperti steganografi atau kompresi) dengan gambar aslinya.
+
+Rumus PSNR (yang diimplementasikan oleh `scikit-image`):
+![image](https://github.com/user-attachments/assets/62c20da6-212a-4b23-bca1-6032fd8474c9)
+
+- **MAX** adalah nilai maksimum piksel (255 untuk gambar 8-bit).
+- **MSE (Mean Squared Error)** adalah rata-rata kuadrat perbedaan antar piksel gambar.
 
 
-### Apa Itu PSNR?
-**PSNR (Peak Signal-to-Noise Ratio)** adalah ukuran kualitas gambar hasil kompresi atau manipulasi dibandingkan dengan gambar aslinya. Nilai PSNR yang lebih tinggi menunjukkan kualitas gambar yang lebih baik (lebih mirip dengan aslinya).
-
-Rumus PSNR:
-
-![image](https://github.com/user-attachments/assets/f101cd9f-4fbd-4cce-8f78-1da7492f9a90)
-
-
-- `MAX_I` adalah nilai maksimum piksel (biasanya 255 untuk gambar 8-bit).
-- `MSE` adalah *Mean Squared Error* atau rata-rata dari selisih kuadrat antara dua gambar.
-
-
-## SELAIN PNSR APA
+## PROGRAM LAIN
