@@ -22,6 +22,57 @@ Anggota Kelompok :
  
 # Penjelasan Sistem Kriptografi Visual & Enkripsi dalam Media
 
+# Visual Crypto
+Modul ini mengimplementasikan teknik *Visual Cryptography* untuk gambar hitam-putih. Visual cryptography memungkinkan pembagian gambar rahasia menjadi dua bagian acak (share) yang tidak dapat dimengerti secara terpisah. Namun, jika kedua bagian digabungkan, gambar asli dapat direkonstruksi secara visual.
+## Fitur
+- Membuat dua share acak dari gambar biner (mode '1').
+- Mereproduksi kembali gambar asli dengan menggabungkan kedua share.
+- Menggunakan pola 2x2 piksel untuk ekspansi piksel dan menyimpan informasi visual.
+## Struktur Pola
+Modul menggunakan pola 2x2 piksel untuk mewakili satu piksel dari gambar asli. Pola-pola ini dibagi menjadi dua jenis:
+- Pola untuk *putih* (informasi visual tidak disembunyikan)
+- Pola untuk *hitam* (menggunakan kombinasi saling melengkapi antar share)
+Setiap jenis pola memiliki beberapa varian untuk meningkatkan keamanan melalui kerandoman.
+## Fungsi
+### create_shares(image)
+Membagi gambar hitam-putih menjadi dua share acak.
+*Parameter:*
+- image (PIL.Image.Image): Gambar sumber yang harus dalam mode '1' (hitam-putih). Jika belum, akan dikonversi.
+*Output:*
+- Tuple (share1, share2) berupa dua gambar yang masing-masing merupakan hasil ekspansi dan enkripsi visual dari gambar asli.
+*Proses:*
+- Setiap piksel asli (1 piksel) diubah menjadi 2x2 blok piksel.
+- Blok dipilih acak dari pola-pola sesuai warna piksel.
+- Share 1 dan Share 2 masing-masing menerima pola berbeda yang jika digabungkan akan menghasilkan kembali representasi piksel asli.
+---
+
+### combine_shares(share1, share2)
+Menggabungkan dua share untuk merekonstruksi gambar asli.
+*Parameter:*
+- share1 (PIL.Image.Image): Share pertama.
+- share2 (PIL.Image.Image): Share kedua.
+*Output:*
+- PIL.Image.Image: Gambar hasil rekonstruksi dalam mode '1'.
+*Proses:*
+- Melakukan operasi logika minimum pada setiap piksel (AND visual).
+- Jika salah satu share berisi piksel hitam (0), maka hasilnya juga hitam.
+- Ini meniru efek tumpang tindih dua lembar transparansi.
+---
+
+## Contoh Penggunaan
+```python
+from PIL import Image
+from visual_crypto import create_shares, combine_shares
+# Load gambar biner
+original = Image.open("secret_bw.png").convert("1")
+# Buat dua share
+share1, share2 = create_shares(original)
+share1.save("share1.png")
+share2.save("share2.png")
+# Gabungkan share untuk melihat hasil rekonstruksi
+result = combine_shares(share1, share2)
+result.save("reconstructed.png")
+
 ## STEGANOGRAFI
 
 `stegano.py` adalah modul Python yang memungkinkan pengguna untuk **menyisipkan teks atau gambar rahasia ke dalam gambar lain** (cover image) menggunakan teknik **Least Significant Bit (LSB)**. Versi ini menggunakan **buffer dan delimiter unik** untuk menjamin ekstraksi pesan secara aman dan akurat.
@@ -211,5 +262,3 @@ Input text: "© 2024 Company Name"
 ```
 Input text: "My Photography"
 ```
-
-## PROGRAM LAIN

@@ -1,5 +1,3 @@
-# visual_crypto.py
-
 from PIL import Image
 import random
 
