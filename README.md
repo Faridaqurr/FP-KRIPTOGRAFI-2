@@ -43,5 +43,79 @@ Rumus PSNR (yang diimplementasikan oleh `scikit-image`):
 - **MAX** adalah nilai maksimum piksel (255 untuk gambar 8-bit).
 - **MSE (Mean Squared Error)** adalah rata-rata kuadrat perbedaan antar piksel gambar.
 
+# 🖋️ Fitur Watermark
+
+## Deskripsi
+Menambahkan teks watermark semi-transparan pada gambar secara otomatis di sudut kanan bawah.
+
+## Fitur Utama
+- **Posisi otomatis**: Sudut kanan bawah dengan margin 20px
+- **Ukuran responsif**: Font menyesuaikan ukuran gambar
+- **Semi-transparan**: 50% transparansi warna merah
+- **Multi-format**: Mendukung PNG, JPG, JPEG
+
+## Cara Kerja
+
+### 1. Konversi Format
+```python
+watermark = image.convert("RGBA")  # Untuk transparansi
+```
+
+### 2. Buat Layer Teks
+```python
+txt_layer = Image.new("RGBA", watermark.size, (255, 255, 255, 0))
+```
+
+### 3. Hitung Ukuran Font
+```python
+font_size = int(min(width, height) / 20)  # 1/20 dari dimensi terkecil
+```
+
+### 4. Posisi Teks
+```python
+x, y = width - textwidth - 20, height - textheight - 20  # Sudut kanan bawah
+```
+
+### 5. Render Watermark
+```python
+draw.text((x, y), text, font=font, fill=(255, 0, 0, 128))  # Merah 50% transparan
+```
+
+## Penggunaan
+
+### Di Streamlit
+```python
+watermarked = add_watermark(image, "Nama - NIM - Kelas")
+```
+
+### Standalone
+```python
+from watermark import add_watermark
+from PIL import Image
+
+img = Image.open("gambar.png")
+result = add_watermark(img, "Watermark Text")
+result.save("output.png")
+```
+
+## Spesifikasi
+
+| Aspek | Detail |
+|-------|--------|
+| **Posisi** | Sudut kanan bawah (margin 20px) |
+| **Warna** | Merah (#FF0000) |
+| **Transparansi** | 50% (alpha=128) |
+| **Font** | Arial (fallback: default) |
+| **Ukuran Font** | 1/20 dimensi terkecil gambar |
+
+## Dependencies
+```
+PIL (Pillow) - Image processing
+```
+
+## Contoh Penggunaan
+- Tugas kuliah: "Nama - 123456789 - Kelas A"
+- Foto pribadi: "© 2024 Your Name"
+- Dokumen: "CONFIDENTIAL"
 
 ## PROGRAM LAIN
