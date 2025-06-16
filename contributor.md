@@ -3,7 +3,7 @@
 Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat mengenai tugas utama yang dikerjakan.
 
 ### 1. **Abid Ubaidillah** 
-**NRP: 5027231089**
+**NRP: 5027231089** <br>
 **Peran:** Koordinator Proyek & Dokumentasi  
 **Tugas:**
 - Merancang struktur proyek dan integrasi antar modul.
@@ -12,7 +12,7 @@ Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat me
 
 
 ### 2. **Farida Qurrotu A'yuna** 
-**NRP: 5027231015**
+**NRP: 5027231015**<br>
 **Peran:** Developer Steganografi  
 **File Utama:** `stegano.py`  
 **Tugas:**
@@ -22,7 +22,7 @@ Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat me
 
 
 ### 3. **Chelsea Vania Hariyono** 
-**NRP: 5027231003** 
+**NRP: 5027231003** <br>
 **Peran:** Developer Visual Cryptography  
 **File Utama:** `visual_crypto.py`  
 **Tugas:**
@@ -32,7 +32,7 @@ Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat me
 
 
 ### 4. **Malvin Putra Rismahardian** 
-**NRP: 5027231048**
+**NRP: 5027231048**<br>
 **Peran:** Developer Kriptografi AES  
 **File Utama:** `aes_crypto.py`  
 **Tugas:**
@@ -42,7 +42,7 @@ Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat me
 
 
 ### 5. **Muhammad Kenas Galeno Putra** 
-**NRP: 5027231069** 
+**NRP: 5027231069** <br>
 **Peran:** Pengembang Watermarking  
 **File Utama:** `watermark.py`  
 **Tugas:**
@@ -52,7 +52,7 @@ Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat me
 
 
 ### 6. **Salsabila Rahmah** 
-**NRP: 5027231005**
+**NRP: 5027231005**<br>
 **Peran:** Evaluasi Kualitas Gambar  
 **File Utama:** `metrics.py`  
 **Tugas:**
@@ -62,7 +62,7 @@ Berikut adalah daftar kontributor dalam proyek ini beserta penjelasan singkat me
 
 
 ### 7. **Revalina Fairuzy Azhari Putri** 
-**NRP: 5027231001**
+**NRP: 5027231001**<br>
 **Peran:** Integrasi dan Antarmuka  
 **File Utama:** `app.py`  
 **Tugas:**
