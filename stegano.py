@@ -1,9 +1,6 @@
-# stegano.py (PERBAIKAN FINAL v2 dengan Buffer)
-
 from PIL import Image
 
-# Tanda akhir pesan yang unik untuk memastikan kita berhenti di tempat yang tepat
-DELIMITER = "11111111" + "11110000" + "00001111"  # 3 byte unik: 255, 240, 15
+DELIMITER = "11111111" + "11110000" + "00001111"  
 DELIMITER_LEN = len(DELIMITER)
 
 def text_to_bits(text: str) -> str:
@@ -102,8 +99,6 @@ def _decode(stego_image: Image.Image) -> str:
             
             # Cek jika buffer sama dengan delimiter
             if buffer == DELIMITER:
-                # Delimiter ditemukan. Kembalikan semua bit SEBELUM delimiter.
-                # Panjang pesan asli adalah total bit yang dibaca dikurangi panjang delimiter.
                 final_message_len = len(message_bits) - DELIMITER_LEN
                 return "".join(message_bits[:final_message_len])
                 
