@@ -262,3 +262,251 @@ Input text: "© 2024 Company Name"
 ```
 Input text: "My Photography"
 ```
+
+# AES-256 Encryption Module
+
+## Overview
+Modul ini menyediakan implementasi enkripsi dan dekripsi menggunakan AES-256 dalam mode GCM (Galois/Counter Mode) dengan key derivation menggunakan PBKDF2. Modul ini dirancang khusus untuk diintegrasikan dengan sistem steganografi untuk memberikan keamanan berlapis pada pesan yang disembunyikan.
+
+## Dependencies
+```python
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Random import get_random_bytes
+import base64
+```
+
+**Library yang dibutuhkan:**
+- `pycryptodome` - Library kriptografi Python untuk operasi AES dan PBKDF2
+
+## Configuration Constants
+
+```python
+# Konfigurasi
+SALT_SIZE = 16
+KEY_SIZE = 32  # AES-256
+ITERATIONS = 100000
+```
+
+**Penjelasan Code:**
+- **SALT_SIZE = 16:** Ukuran salt dalam bytes (128-bit) - salt digunakan untuk membuat setiap enkripsi unik
+- **KEY_SIZE = 32:** Ukuran kunci AES-256 dalam bytes (256-bit) - menentukan tingkat keamanan enkripsi
+- **ITERATIONS = 100000:** Jumlah iterasi PBKDF2 - semakin tinggi semakin aman tapi lambat
+
+## Core Functions
+
+### 1. `encrypt(plain_text: str, password: str) -> str`
+
+```python
+def encrypt(plain_text: str, password: str) -> str:
+    """
+    Mengenkripsi teks menggunakan AES-256 GCM dengan password.
+    
+    Returns:
+        str: String Base64 yang berisi (salt + nonce + tag + ciphertext).
+    """
+    # 1. Ubah data menjadi bytes
+    data = plain_text.encode('utf-8')
+    
+    # 2. Buat salt acak
+    salt = get_random_bytes(SALT_SIZE)
+    
+    # 3. Turunkan kunci dari password dan salt
+    key = PBKDF2(password, salt, dkLen=KEY_SIZE, count=ITERATIONS)
+    
+    # 4. Buat cipher AES dalam mode GCM
+    cipher = AES.new(key, AES.MODE_GCM)
+    
+    # 5. Enkripsi data
+    ciphertext, tag = cipher.encrypt_and_digest(data)
+    
+    # 6. Gabungkan semua komponen (salt, nonce, tag, ciphertext)
+    encrypted_package = salt + cipher.nonce + tag + ciphertext
+    
+    # 7. Kembalikan sebagai string Base64 agar aman untuk steganografi
+    return base64.b64encode(encrypted_package).decode('utf-8')
+```
+
+**Penjelasan Code:**
+
+- **Line 7:** Mengkonversi teks input menjadi bytes UTF-8 karena AES bekerja dengan data binary
+- **Line 10:** Generate salt random 16 bytes menggunakan `get_random_bytes()` untuk setiap operasi enkripsi
+- **Line 13:** Menggunakan PBKDF2 untuk menghasilkan kunci AES 256-bit dari password dan salt dengan 100,000 iterasi
+- **Line 16:** Membuat objek cipher AES dalam mode GCM yang memberikan enkripsi dan otentikasi sekaligus
+- **Line 19:** Melakukan enkripsi dan menghasilkan ciphertext + authentication tag dalam satu operasi
+- **Line 22:** Menggabungkan semua komponen dalam urutan: salt + nonce + tag + ciphertext
+- **Line 25:** Mengkonversi hasil binary ke Base64 string agar kompatibel dengan steganografi
+
+**Struktur Output:**
+```
+[Salt 16 bytes][Nonce 16 bytes][Tag 16 bytes][Ciphertext variable bytes] -> Base64
+```
+
+### 2. `decrypt(b64_encrypted: str, password: str) -> str`
+
+```python
+def decrypt(b64_encrypted: str, password: str) -> str:
+    """
+    Mendekripsi data yang dienkripsi dengan AES-256 GCM.
+    
+    Args:
+        b64_encrypted (str): String Base64 dari fungsi encrypt.
+    
+    Returns:
+        str: Teks asli.
+        
+    Raises:
+        ValueError: Jika password salah atau data rusak.
+    """
+    try:
+        # 1. Decode Base64 menjadi bytes
+        encrypted_package = base64.b64decode(b64_encrypted)
+        
+        # 2. Ekstrak komponen dari package
+        # Ukuran: salt(16), nonce(16 GCM default), tag(16 GCM default)
+        salt = encrypted_package[:SALT_SIZE]
+        nonce = encrypted_package[SALT_SIZE:SALT_SIZE + 16]
+        tag = encrypted_package[SALT_SIZE + 16:SALT_SIZE + 32]
+        ciphertext = encrypted_package[SALT_SIZE + 32:]
+        
+        # 3. Turunkan kunci dari password dan salt yang diekstrak
+        key = PBKDF2(password, salt, dkLen=KEY_SIZE, count=ITERATIONS)
+        
+        # 4. Buat cipher dengan kunci dan nonce yang diekstrak
+        cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+        
+        # 5. Dekripsi dan verifikasi data. Ini akan error jika tag tidak cocok.
+        decrypted_data = cipher.decrypt_and_verify(ciphertext, tag)
+        
+        # 6. Kembalikan sebagai string
+        return decrypted_data.decode('utf-8')
+
+    except (ValueError, KeyError, IndexError) as e:
+        # Jika terjadi error apapun selama proses unpacking atau dekripsi,
+        # kemungkinan besar password salah atau data telah rusak.
+        raise ValueError("Password salah atau data korup.")
+```
+
+**Penjelasan Code:**
+
+- **Line 14:** Decode string Base64 kembali menjadi bytes binary
+- **Line 17-20:** Ekstrak komponen dengan slicing: salt (16 bytes), nonce (16 bytes), tag (16 bytes), sisanya ciphertext
+- **Line 23:** Regenerate kunci yang sama menggunakan PBKDF2 dengan password dan salt yang diekstrak
+- **Line 26:** Membuat cipher AES-GCM dengan kunci dan nonce yang sudah diekstrak
+- **Line 29:** Dekripsi ciphertext dan verifikasi authentication tag secara bersamaan - akan throw exception jika tag tidak cocok
+- **Line 32:** Konversi hasil dekripsi dari bytes kembali ke string UTF-8
+- **Line 34-37:** Error handling yang menangkap semua kemungkinan error dan memberikan pesan yang konsisten untuk keamanan
+
+## Security Features
+
+### 1. **AES-256 GCM Mode**
+- **Enkripsi:** Menggunakan AES dengan kunci 256-bit
+- **Mode GCM:** Memberikan confidentiality dan authenticity sekaligus
+- **Authentication Tag:** Memastikan integritas data dan deteksi tampering
+
+### 2. **PBKDF2 Key Derivation**
+- **Salt:** 16 bytes random salt untuk setiap enkripsi
+- **Iterasi:** 100,000 iterasi untuk memperlambat brute force attack
+- **Output:** Kunci 256-bit yang konsisten dari password yang sama
+
+### 3. **Randomization**
+- **Salt:** Unik untuk setiap operasi enkripsi
+- **Nonce:** Otomatis dihasilkan oleh GCM mode untuk setiap enkripsi
+
+## Integration dengan Steganografi
+
+Modul ini terintegrasi dengan sistem steganografi melalui `app.py`:
+
+### Code Integration di app.py:
+
+```python
+# Import AES functions
+from aes_crypto import encrypt as aes_encrypt, decrypt as aes_decrypt
+
+# Session state untuk menyimpan data
+if 'aes_stego_img_data' not in st.session_state: 
+    st.session_state.aes_stego_img_data = None
+if 'aes_extracted_text_data' not in st.session_state: 
+    st.session_state.aes_extracted_text_data = None
+```
+
+**Penjelasan Code:**
+- Import fungsi encrypt dan decrypt dengan alias untuk menghindari konflik nama
+- Inisialisasi session state Streamlit untuk menyimpan gambar stego dan teks hasil ekstraksi
+
+### Proses Enkripsi dan Steganografi:
+
+```python
+# 1. Enkripsi teks dengan password
+encrypted_b64_string = aes_encrypt(secret_text_aes, password_aes_enc)
+
+# 2. Sembunyikan hasil enkripsi (string base64) ke dalam gambar
+cover_img = Image.open(cover_aes_file)
+stego_img = encode_text(cover_img, encrypted_b64_string)
+st.session_state.aes_stego_img_data = stego_img
+```
+
+**Penjelasan Code:**
+- **Line 2:** Enkripsi teks rahasia menggunakan password, hasilnya string Base64
+- **Line 5:** Buka gambar cover yang akan digunakan untuk menyembunyikan data
+- **Line 6:** Gunakan steganografi untuk menyembunyikan string Base64 terenkripsi ke dalam gambar
+- **Line 7:** Simpan gambar stego hasil ke session state untuk ditampilkan/download
+
+### Proses Ekstraksi dan Dekripsi:
+
+```python
+stego_img = Image.open(stego_aes_file)
+# 1. Ekstrak string base64 dari gambar
+extracted_b64_string = decode_text(stego_img)
+
+# 2. Dekripsi string base64 dengan password
+decrypted_text = aes_decrypt(extracted_b64_string, password_aes_dec)
+st.session_state.aes_extracted_text_data = decrypted_text
+```
+
+**Penjelasan Code:**
+- **Line 1:** Buka gambar stego yang berisi data terenkripsi
+- **Line 3:** Ekstrak string Base64 terenkripsi dari gambar menggunakan steganografi
+- **Line 6:** Dekripsi string Base64 menggunakan password untuk mendapatkan teks asli
+- **Line 7:** Simpan teks hasil dekripsi ke session state untuk ditampilkan
+
+**Workflow Lengkap:**
+1. User memasukkan teks rahasia dan password
+2. Teks dienkripsi menggunakan AES-256 → menghasilkan string Base64
+3. String Base64 disembunyikan dalam gambar menggunakan steganografi
+4. Untuk ekstraksi: string Base64 diekstrak dari gambar
+5. String Base64 didekripsi menggunakan password → menghasilkan teks asli
+
+## Advantages
+
+1. **Double Security:** Kombinasi enkripsi kriptografi + steganografi
+2. **Industry Standard:** Menggunakan AES-256 yang merupakan standar enkripsi
+3. **Authenticated Encryption:** GCM mode memastikan integritas data
+4. **Password-Based:** Tidak perlu mengelola kunci secara manual
+5. **Base64 Compatible:** Output kompatibel dengan sistem steganografi existing
+
+## Usage Example
+
+```python
+from aes_crypto import encrypt, decrypt
+
+# Enkripsi
+plaintext = "Pesan rahasia ini sangat penting!"
+password = "password_yang_kuat_123"
+encrypted = encrypt(plaintext, password)
+print(f"Encrypted: {encrypted}")
+
+# Dekripsi
+try:
+    decrypted = decrypt(encrypted, password)
+    print(f"Decrypted: {decrypted}")
+except ValueError as e:
+    print(f"Dekripsi gagal: {e}")
+```
+
+## Security Considerations
+
+1. **Password Strength:** Gunakan password yang kuat dan unik
+2. **Key Storage:** Jangan hardcode password dalam kode
+3. **Error Messages:** Error message sengaja dibuat umum untuk mencegah information leakage
+4. **Iteration Count:** 100,000 iterasi cukup untuk tahun 2024, pertimbangkan peningkatan di masa depan
