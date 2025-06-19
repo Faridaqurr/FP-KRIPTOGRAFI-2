@@ -12,7 +12,18 @@ Anggota Kelompok :
 |Abid Ubaidillah A.|5027231089|
 |Malvin Putra Rismahardian|5027231048|
 
-## Tugas
+## Daftar  Isi
+- [Tugas](#tugas)
+- [Visual Cryptography](#visual-crypto)
+- [Steganography](#steganografi)
+- [PSNR](#psnr-program)
+- [Watermarking](#fitur-watermarking)
+- [AES](#aes-256-encryption-module)
+- [Integrasi dengan Steganografi](#integration-dengan-steganografi)
+
+
+
+# Tugas
 
 - Mahasiswa diwajibkan untuk mengembangkan sebuah final project sebagai bentuk implementasi dari teori yang telah dipelajari.
   - Tema proyek disesuaikan dengan topik yang telah dipilih.
@@ -72,8 +83,9 @@ share2.save("share2.png")
 # Gabungkan share untuk melihat hasil rekonstruksi
 result = combine_shares(share1, share2)
 result.save("reconstructed.png")
+```
 
-## STEGANOGRAFI
+# STEGANOGRAFI
 
 `stegano.py` adalah modul Python yang memungkinkan pengguna untuk **menyisipkan teks atau gambar rahasia ke dalam gambar lain** (cover image) menggunakan teknik **Least Significant Bit (LSB)**. Versi ini menggunakan **buffer dan delimiter unik** untuk menjamin ekstraksi pesan secara aman dan akurat.
 
@@ -94,7 +106,7 @@ result.save("reconstructed.png")
 - Saat membaca kembali, proses ekstraksi terus berjalan hingga **delimiter** ditemukan.
 - Untuk gambar, dimasukkan metadata (ukuran gambar) di awal stream.
 
-## PSNR PROGRAM
+# PSNR PROGRAM
 
 Proyek ini menyediakan fungsi Python untuk menghitung **PSNR (Peak Signal-to-Noise Ratio)** antara dua gambar digital — biasanya digunakan untuk membandingkan gambar asli dengan gambar hasil steganografi, kompresi, atau rekonstruksi.
 
@@ -115,7 +127,7 @@ Rumus PSNR (yang diimplementasikan oleh `scikit-image`):
 - **MAX** adalah nilai maksimum piksel (255 untuk gambar 8-bit).
 - **MSE (Mean Squared Error)** adalah rata-rata kuadrat perbedaan antar piksel gambar.
 
-## Fitur Watermarking
+# Fitur Watermarking
 
 ## Deskripsi
 Fitur watermarking pada Tab 3 aplikasi Kriptografi Media Suite yang menambahkan teks identitas semi-transparan pada gambar secara otomatis.
@@ -229,7 +241,8 @@ return combined.convert("RGB")
 | **Font** | Arial → Default | Fallback otomatis |
 | **Format Output** | PNG | Via BytesIO buffer |
 
-## User Experience
+
+# User Experience
 
 ### Input Validation
 - **File types**: PNG, JPG, JPEG supported
@@ -413,11 +426,11 @@ def decrypt(b64_encrypted: str, password: str) -> str:
 - **Salt:** Unik untuk setiap operasi enkripsi
 - **Nonce:** Otomatis dihasilkan oleh GCM mode untuk setiap enkripsi
 
-## Integration dengan Steganografi
+# Integration dengan Steganografi
 
 Modul ini terintegrasi dengan sistem steganografi melalui `app.py`:
 
-### Code Integration di app.py:
+## Code Integration di app.py:
 
 ```python
 # Import AES functions
@@ -434,7 +447,7 @@ if 'aes_extracted_text_data' not in st.session_state:
 - Import fungsi encrypt dan decrypt dengan alias untuk menghindari konflik nama
 - Inisialisasi session state Streamlit untuk menyimpan gambar stego dan teks hasil ekstraksi
 
-### Proses Enkripsi dan Steganografi:
+## Proses Enkripsi dan Steganografi:
 
 ```python
 # 1. Enkripsi teks dengan password
@@ -452,7 +465,7 @@ st.session_state.aes_stego_img_data = stego_img
 - **Line 6:** Gunakan steganografi untuk menyembunyikan string Base64 terenkripsi ke dalam gambar
 - **Line 7:** Simpan gambar stego hasil ke session state untuk ditampilkan/download
 
-### Proses Ekstraksi dan Dekripsi:
+## Proses Ekstraksi dan Dekripsi:
 
 ```python
 stego_img = Image.open(stego_aes_file)
@@ -504,7 +517,7 @@ except ValueError as e:
     print(f"Dekripsi gagal: {e}")
 ```
 
-## Security Considerations
+# Security Considerations
 
 1. **Password Strength:** Gunakan password yang kuat dan unik
 2. **Key Storage:** Jangan hardcode password dalam kode
