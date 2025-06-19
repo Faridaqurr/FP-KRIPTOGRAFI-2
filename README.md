@@ -1,6 +1,6 @@
 # FP KRIPTOGRAFI KELOMPOK 2
 
-Anggota Kelompok :
+**Anggota Kelompok :**
 
 |Nama|NRP|
 |---|---|
@@ -105,6 +105,105 @@ result.save("reconstructed.png")
 - Setelah semua bit pesan disisipkan, ditambahkan **delimiter**: `111111111111000000001111`.
 - Saat membaca kembali, proses ekstraksi terus berjalan hingga **delimiter** ditemukan.
 - Untuk gambar, dimasukkan metadata (ukuran gambar) di awal stream.
+
+## Integration dengan Steganografi
+
+Modul ini terintegrasi dengan sistem steganografi melalui `app.py`:
+
+###  Code Integration di app.py:
+
+```python
+# Import AES functions
+from aes_crypto import encrypt as aes_encrypt, decrypt as aes_decrypt
+
+# Session state untuk menyimpan data
+if 'aes_stego_img_data' not in st.session_state: 
+    st.session_state.aes_stego_img_data = None
+if 'aes_extracted_text_data' not in st.session_state: 
+    st.session_state.aes_extracted_text_data = None
+```
+
+**Penjelasan Code:**
+- Import fungsi encrypt dan decrypt dengan alias untuk menghindari konflik nama
+- Inisialisasi session state Streamlit untuk menyimpan gambar stego dan teks hasil ekstraksi
+
+### Proses Enkripsi dan Steganografi:
+
+```python
+# 1. Enkripsi teks dengan password
+encrypted_b64_string = aes_encrypt(secret_text_aes, password_aes_enc)
+
+# 2. Sembunyikan hasil enkripsi (string base64) ke dalam gambar
+cover_img = Image.open(cover_aes_file)
+stego_img = encode_text(cover_img, encrypted_b64_string)
+st.session_state.aes_stego_img_data = stego_img
+```
+
+**Penjelasan Code:**
+- **Line 2:** Enkripsi teks rahasia menggunakan password, hasilnya string Base64
+- **Line 5:** Buka gambar cover yang akan digunakan untuk menyembunyikan data
+- **Line 6:** Gunakan steganografi untuk menyembunyikan string Base64 terenkripsi ke dalam gambar
+- **Line 7:** Simpan gambar stego hasil ke session state untuk ditampilkan/download
+
+### Proses Ekstraksi dan Dekripsi:
+
+```python
+stego_img = Image.open(stego_aes_file)
+# 1. Ekstrak string base64 dari gambar
+extracted_b64_string = decode_text(stego_img)
+
+# 2. Dekripsi string base64 dengan password
+decrypted_text = aes_decrypt(extracted_b64_string, password_aes_dec)
+st.session_state.aes_extracted_text_data = decrypted_text
+```
+
+**Penjelasan Code:**
+- **Line 1:** Buka gambar stego yang berisi data terenkripsi
+- **Line 3:** Ekstrak string Base64 terenkripsi dari gambar menggunakan steganografi
+- **Line 6:** Dekripsi string Base64 menggunakan password untuk mendapatkan teks asli
+- **Line 7:** Simpan teks hasil dekripsi ke session state untuk ditampilkan
+
+**Workflow Lengkap:**
+1. User memasukkan teks rahasia dan password
+2. Teks dienkripsi menggunakan AES-256 → menghasilkan string Base64
+3. String Base64 disembunyikan dalam gambar menggunakan steganografi
+4. Untuk ekstraksi: string Base64 diekstrak dari gambar
+5. String Base64 didekripsi menggunakan password → menghasilkan teks asli
+
+### Advantages
+
+1. **Double Security:** Kombinasi enkripsi kriptografi + steganografi
+2. **Industry Standard:** Menggunakan AES-256 yang merupakan standar enkripsi
+3. **Authenticated Encryption:** GCM mode memastikan integritas data
+4. **Password-Based:** Tidak perlu mengelola kunci secara manual
+5. **Base64 Compatible:** Output kompatibel dengan sistem steganografi existing
+
+### Usage Example
+
+```python
+from aes_crypto import encrypt, decrypt
+
+# Enkripsi
+plaintext = "Pesan rahasia ini sangat penting!"
+password = "password_yang_kuat_123"
+encrypted = encrypt(plaintext, password)
+print(f"Encrypted: {encrypted}")
+
+# Dekripsi
+try:
+    decrypted = decrypt(encrypted, password)
+    print(f"Decrypted: {decrypted}")
+except ValueError as e:
+    print(f"Dekripsi gagal: {e}")
+```
+
+### Security Considerations
+
+1. **Password Strength:** Gunakan password yang kuat dan unik
+2. **Key Storage:** Jangan hardcode password dalam kode
+3. **Error Messages:** Error message sengaja dibuat umum untuk mencegah information leakage
+4. **Iteration Count:** 100,000 iterasi cukup untuk tahun 2024, pertimbangkan peningkatan di masa depan
+
 
 # PSNR PROGRAM
 
@@ -426,100 +525,3 @@ def decrypt(b64_encrypted: str, password: str) -> str:
 - **Salt:** Unik untuk setiap operasi enkripsi
 - **Nonce:** Otomatis dihasilkan oleh GCM mode untuk setiap enkripsi
 
-# Integration dengan Steganografi
-
-Modul ini terintegrasi dengan sistem steganografi melalui `app.py`:
-
-## Code Integration di app.py:
-
-```python
-# Import AES functions
-from aes_crypto import encrypt as aes_encrypt, decrypt as aes_decrypt
-
-# Session state untuk menyimpan data
-if 'aes_stego_img_data' not in st.session_state: 
-    st.session_state.aes_stego_img_data = None
-if 'aes_extracted_text_data' not in st.session_state: 
-    st.session_state.aes_extracted_text_data = None
-```
-
-**Penjelasan Code:**
-- Import fungsi encrypt dan decrypt dengan alias untuk menghindari konflik nama
-- Inisialisasi session state Streamlit untuk menyimpan gambar stego dan teks hasil ekstraksi
-
-## Proses Enkripsi dan Steganografi:
-
-```python
-# 1. Enkripsi teks dengan password
-encrypted_b64_string = aes_encrypt(secret_text_aes, password_aes_enc)
-
-# 2. Sembunyikan hasil enkripsi (string base64) ke dalam gambar
-cover_img = Image.open(cover_aes_file)
-stego_img = encode_text(cover_img, encrypted_b64_string)
-st.session_state.aes_stego_img_data = stego_img
-```
-
-**Penjelasan Code:**
-- **Line 2:** Enkripsi teks rahasia menggunakan password, hasilnya string Base64
-- **Line 5:** Buka gambar cover yang akan digunakan untuk menyembunyikan data
-- **Line 6:** Gunakan steganografi untuk menyembunyikan string Base64 terenkripsi ke dalam gambar
-- **Line 7:** Simpan gambar stego hasil ke session state untuk ditampilkan/download
-
-## Proses Ekstraksi dan Dekripsi:
-
-```python
-stego_img = Image.open(stego_aes_file)
-# 1. Ekstrak string base64 dari gambar
-extracted_b64_string = decode_text(stego_img)
-
-# 2. Dekripsi string base64 dengan password
-decrypted_text = aes_decrypt(extracted_b64_string, password_aes_dec)
-st.session_state.aes_extracted_text_data = decrypted_text
-```
-
-**Penjelasan Code:**
-- **Line 1:** Buka gambar stego yang berisi data terenkripsi
-- **Line 3:** Ekstrak string Base64 terenkripsi dari gambar menggunakan steganografi
-- **Line 6:** Dekripsi string Base64 menggunakan password untuk mendapatkan teks asli
-- **Line 7:** Simpan teks hasil dekripsi ke session state untuk ditampilkan
-
-**Workflow Lengkap:**
-1. User memasukkan teks rahasia dan password
-2. Teks dienkripsi menggunakan AES-256 → menghasilkan string Base64
-3. String Base64 disembunyikan dalam gambar menggunakan steganografi
-4. Untuk ekstraksi: string Base64 diekstrak dari gambar
-5. String Base64 didekripsi menggunakan password → menghasilkan teks asli
-
-## Advantages
-
-1. **Double Security:** Kombinasi enkripsi kriptografi + steganografi
-2. **Industry Standard:** Menggunakan AES-256 yang merupakan standar enkripsi
-3. **Authenticated Encryption:** GCM mode memastikan integritas data
-4. **Password-Based:** Tidak perlu mengelola kunci secara manual
-5. **Base64 Compatible:** Output kompatibel dengan sistem steganografi existing
-
-## Usage Example
-
-```python
-from aes_crypto import encrypt, decrypt
-
-# Enkripsi
-plaintext = "Pesan rahasia ini sangat penting!"
-password = "password_yang_kuat_123"
-encrypted = encrypt(plaintext, password)
-print(f"Encrypted: {encrypted}")
-
-# Dekripsi
-try:
-    decrypted = decrypt(encrypted, password)
-    print(f"Decrypted: {decrypted}")
-except ValueError as e:
-    print(f"Dekripsi gagal: {e}")
-```
-
-# Security Considerations
-
-1. **Password Strength:** Gunakan password yang kuat dan unik
-2. **Key Storage:** Jangan hardcode password dalam kode
-3. **Error Messages:** Error message sengaja dibuat umum untuk mencegah information leakage
-4. **Iteration Count:** 100,000 iterasi cukup untuk tahun 2024, pertimbangkan peningkatan di masa depan
