@@ -1,123 +1,101 @@
 from PIL import Image
 
-# Tanda akhir pesan yang unik untuk memastikan kita berhenti di tempat yang tepat
-DELIMITER = "11111111" + "11110000" + "00001111"  
+# --- Konstanta ---
+DELIMITER = "11111111" + "11110000" + "00001111"  # Tanda akhir pesan
 DELIMITER_LEN = len(DELIMITER)
 
+# --- Konversi Teks <-> Bit ---
 def text_to_bits(text: str) -> str:
-    """Mengubah string teks menjadi string bit menggunakan UTF-8."""
     return "".join(f"{byte:08b}" for byte in text.encode('utf-8'))
 
 def bits_to_text(bits: str) -> str:
-    """Mengubah string bit kembali menjadi teks."""
     byte_chunks = [bits[i:i + 8] for i in range(0, len(bits), 8)]
-    valid_chunks = [b for b in byte_chunks if len(b) == 8]
-    byte_list = [int(b, 2) for b in valid_chunks]
-    
+    byte_list = [int(b, 2) for b in byte_chunks if len(b) == 8]
     try:
         return bytes(byte_list).decode('utf-8', 'ignore')
-    except (ValueError, TypeError):
+    except:
         return ""
 
+# --- Konversi Gambar ke Bit (dan sebaliknya) ---
 def image_to_bits(image: Image.Image) -> str:
-    """Mengubah gambar (mode '1') menjadi string bit, termasuk ukurannya."""
     if image.mode != '1':
         image = image.convert('1')
-    
     width, height = image.size
     width_bits = f'{width:016b}'
     height_bits = f'{height:016b}'
-    
     pixel_bits = "".join('0' if p == 0 else '1' for p in image.getdata())
     return width_bits + height_bits + pixel_bits
 
 def bits_to_image(bit_stream: str) -> Image.Image:
-    """Mengubah string bit kembali menjadi gambar."""
-    try:
-        width = int(bit_stream[0:16], 2)
-        height = int(bit_stream[16:32], 2)
-        pixel_data_str = bit_stream[32:]
-        
-        if len(pixel_data_str) != width * height:
-            raise ValueError("Data bit tidak cocok dengan ukuran gambar.")
-            
-        img = Image.new('1', (width, height))
-        img.putdata([int(p) * 255 for p in pixel_data_str])
-        return img
-    except (ValueError, IndexError):
-        raise ValueError("Gagal merekonstruksi gambar dari data bit.")
+    width = int(bit_stream[0:16], 2)
+    height = int(bit_stream[16:32], 2)
+    pixel_data_str = bit_stream[32:]
+    if len(pixel_data_str) != width * height:
+        raise ValueError("Data bit tidak cocok dengan ukuran gambar.")
+    img = Image.new('1', (width, height))
+    img.putdata([int(p) * 255 for p in pixel_data_str])
+    return img
 
-def _encode(cover_image: Image.Image, bits_to_hide: str) -> Image.Image:
-    """Fungsi inti untuk menyembunyikan bit ke dalam gambar."""
+# --- Encode Bit ke Gambar (dengan blok) ---
+def _encode(cover_image: Image.Image, bits_to_hide: str, block_size: int = 1) -> Image.Image:
     cover = cover_image.copy().convert("RGB")
-    
-    data_with_delimiter = bits_to_hide + DELIMITER
-    num_bits = len(data_with_delimiter)
-    
-    max_bits = cover.width * cover.height * 3
-    if num_bits > max_bits:
-        raise ValueError("Data terlalu besar untuk disembunyikan di dalam gambar sampul.")
+    width, height = cover.size
+    data_with_delim = bits_to_hide + DELIMITER
+    num_bits = len(data_with_delim)
 
-    data_index = 0
+    max_bits = (width // block_size) * (height // block_size) * 3
+    if num_bits > max_bits:
+        raise ValueError("Data terlalu besar untuk disisipkan pada ukuran blok ini.")
+
     pixels = cover.load()
-    
-    for y in range(cover.height):
-        for x in range(cover.width):
-            r, g, b = pixels[x, y]
-            
-            if data_index < num_bits:
-                r = (r & 0b11111110) | int(data_with_delimiter[data_index]); data_index += 1
-            if data_index < num_bits:
-                g = (g & 0b11111110) | int(data_with_delimiter[data_index]); data_index += 1
-            if data_index < num_bits:
-                b = (b & 0b11111110) | int(data_with_delimiter[data_index]); data_index += 1
-            
-            pixels[x, y] = (r, g, b)
+    data_index = 0
+
+    for y in range(0, height, block_size):
+        for x in range(0, width, block_size):
             if data_index >= num_bits:
-                return cover
+                break
+            r, g, b = pixels[x, y]
+            if data_index < num_bits:
+                r = (r & 0b11111110) | int(data_with_delim[data_index]); data_index += 1
+            if data_index < num_bits:
+                g = (g & 0b11111110) | int(data_with_delim[data_index]); data_index += 1
+            if data_index < num_bits:
+                b = (b & 0b11111110) | int(data_with_delim[data_index]); data_index += 1
+            pixels[x, y] = (r, g, b)
+
     return cover
 
-def _decode(stego_image: Image.Image) -> str:
-    """Fungsi inti untuk mengekstrak bit dari gambar (dengan metode buffer)."""
+# --- Decode Bit dari Gambar (dengan blok) ---
+def _decode(stego_image: Image.Image, block_size: int = 1) -> str:
     stego = stego_image.copy().convert("RGB")
-    
+    width, height = stego.size
+    pixels = stego.load()
+
     message_bits = []
     buffer = ""
-    
-    pixels = stego.getdata()
-    for r, g, b in pixels:
-        bits = str(r & 1) + str(g & 1) + str(b & 1)
-        
-        for bit in bits:
-            message_bits.append(bit)
-            buffer += bit
-            
-            # Jika buffer lebih panjang dari delimiter, buang bit pertama
-            if len(buffer) > DELIMITER_LEN:
-                buffer = buffer[1:]
-            
-            # Cek jika buffer sama dengan delimiter
-            if buffer == DELIMITER:
-                # Delimiter ditemukan. Kembalikan semua bit SEBELUM delimiter.
-                final_message_len = len(message_bits) - DELIMITER_LEN
-                return "".join(message_bits[:final_message_len])
-                
-    raise ValueError("Delimiter tidak ditemukan. Data mungkin rusak atau tidak ada.")
 
+    for y in range(0, height, block_size):
+        for x in range(0, width, block_size):
+            r, g, b = pixels[x, y]
+            for bit in [r & 1, g & 1, b & 1]:
+                message_bits.append(str(bit))
+                buffer += str(bit)
+                if len(buffer) > DELIMITER_LEN:
+                    buffer = buffer[1:]
+                if buffer == DELIMITER:
+                    return "".join(message_bits[:-DELIMITER_LEN])
 
-# --- Fungsi Publik (Tidak ada perubahan di sini) ---
-def encode_text(cover_image: Image.Image, secret_text: str) -> Image.Image:
-    bits = text_to_bits(secret_text)
-    return _encode(cover_image, bits)
+    raise ValueError("Delimiter tidak ditemukan.")
 
-def decode_text(stego_image: Image.Image) -> str:
-    bits = _decode(stego_image)
-    return bits_to_text(bits)
+# --- Fungsi Publik ---
+def encode_text(cover_image: Image.Image, secret_text: str, block_size: int = 1) -> Image.Image:
+    return _encode(cover_image, text_to_bits(secret_text), block_size)
 
-def encode_image(cover_image: Image.Image, secret_image: Image.Image) -> Image.Image:
-    bits = image_to_bits(secret_image)
-    return _encode(cover_image, bits)
+def decode_text(stego_image: Image.Image, block_size: int = 1) -> str:
+    return bits_to_text(_decode(stego_image, block_size))
 
-def decode_image(stego_image: Image.Image) -> Image.Image:
-    bits = _decode(stego_image)
-    return bits_to_image(bits)
+def encode_image(cover_image: Image.Image, secret_image: Image.Image, block_size: int = 1) -> Image.Image:
+    return _encode(cover_image, image_to_bits(secret_image), block_size)
+
+def decode_image(stego_image: Image.Image, block_size: int = 1) -> Image.Image:
+    return bits_to_image(_decode(stego_image, block_size))
