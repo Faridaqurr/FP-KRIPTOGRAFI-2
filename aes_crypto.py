@@ -1,34 +1,36 @@
-
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
+from Crypto.Protocol.KDF import PBKDF2
 import base64
-import io
-from PIL import Image
-import hashlib
 
-def pad(data):
-    pad_len = 16 - len(data) % 16
-    return data + bytes([pad_len] * pad_len)
+# Panjang blok AES
+BLOCK_SIZE = 16
+# Salt acak untuk turunan kunci
+SALT = b'steganografi_salt'
 
-def unpad(data):
-    pad_len = data[-1]
-    return data[:-pad_len]
+# Padding (agar panjang teks kelipatan 16)
+def pad(text):
+    pad_len = BLOCK_SIZE - len(text) % BLOCK_SIZE
+    return text + bytes([pad_len] * pad_len)
 
-def encrypt_image(image: Image.Image, password: str):
-    key = hashlib.sha256(password.encode()).digest()
-    iv = get_random_bytes(16)
+def unpad(text):
+    pad_len = text[-1]
+    return text[:-pad_len]
+
+# Fungsi enkripsi teks menjadi bytes terenkripsi (AES)
+def encrypt_image(plaintext_bytes, password):
+    key = PBKDF2(password, SALT, dkLen=32)  # 256-bit key
+    iv = get_random_bytes(BLOCK_SIZE)
     cipher = AES.new(key, AES.MODE_CBC, iv)
+    padded = pad(plaintext_bytes)
+    ciphertext = cipher.encrypt(padded)
+    return iv + ciphertext  # simpan IV di depan
 
-    buf = io.BytesIO()
-    image.save(buf, format='PNG')
-    plaintext = pad(buf.getvalue())
-    ciphertext = cipher.encrypt(plaintext)
-    return iv + ciphertext
-
-def decrypt_image(data: bytes, password: str):
-    key = hashlib.sha256(password.encode()).digest()
-    iv = data[:16]
-    ciphertext = data[16:]
+# Fungsi dekripsi bytes menjadi teks
+def decrypt_image(encrypted_data, password):
+    key = PBKDF2(password, SALT, dkLen=32)
+    iv = encrypted_data[:BLOCK_SIZE]
+    ciphertext = encrypted_data[BLOCK_SIZE:]
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    decrypted = unpad(cipher.decrypt(ciphertext))
-    return Image.open(io.BytesIO(decrypted))
+    padded = cipher.decrypt(ciphertext)
+    return unpad(padded)

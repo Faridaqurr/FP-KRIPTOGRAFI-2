@@ -4,6 +4,8 @@ import streamlit as st
 from PIL import Image
 import io
 import traceback
+from aes_crypto import encrypt_image, decrypt_image
+import base64
 
 # --- BAGIAN INISIALISASI ---
 
@@ -104,20 +106,36 @@ with tab1:
 # --- Tab 2: Steganografi Teks ---
 with tab2:
     st.header("Metode Steganografi Teks")
-    st.info("Menyembunyikan pesan teks rahasia di dalam gambar sampul dan mengekstraknya kembali.")
+    st.info("Menyembunyikan pesan teks rahasia di dalam gambar sampul dan mengekstraknya kembali. Bisa menggunakan password (AES) untuk keamanan tambahan.")
     
     col1, col2 = st.columns(2, gap="large")
 
     with col1:
         st.subheader("1. Sembunyikan Teks (Enkripsi)")
+
+        secret_text = st.text_area("Masukkan teks rahasia di sini:", key="steg_text_widget")
+        use_password = st.radio("Gunakan Password untuk Enkripsi?", ["Tidak", "Ya"], horizontal=True)
+        
+        password = ""
+        if use_password == "Ya":
+            password = st.text_input("Masukkan Password", type="password")
+
+        cover_steg_file = st.file_uploader("Upload gambar sampul", type=["png", "bmp", "jpg", "jpeg"], key="steg_cover_widget")
+
         with st.form("steg_encrypt_form", clear_on_submit=True):
-            secret_text = st.text_area("Masukkan teks rahasia di sini:", key="steg_text_widget")
-            cover_steg_file = st.file_uploader("Upload gambar sampul", type=["png", "bmp", "jpg", "jpeg"], key="steg_cover_widget")
             submitted = st.form_submit_button("Sembunyikan Teks")
             if submitted and secret_text and cover_steg_file:
                 try:
                     cover_img = Image.open(cover_steg_file)
-                    st.session_state.stego_text_img_data = encode_text(cover_img, secret_text)
+                    
+                    if use_password == "Ya":
+                        encrypted_bytes = encrypt_image(secret_text.encode("utf-8"), password)
+                        secret_encoded = base64.b64encode(encrypted_bytes).decode("utf-8")
+
+                    else:
+                        secret_encoded = secret_text
+                    
+                    st.session_state.stego_text_img_data = encode_text(cover_img, secret_encoded)
                     st.success("Teks berhasil disembunyikan!")
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -128,22 +146,41 @@ with tab2:
             st.session_state.stego_text_img_data.save(buf, format="PNG")
             st.download_button("⬇️ Download Gambar Stego", buf, "stego_text.png", "image/png", key="steg_dl_widget")
 
-    with col2:
-        st.subheader("2. Ekstrak Teks (Dekripsi)")
-        with st.form("steg_decrypt_form", clear_on_submit=True):
-            stego_file = st.file_uploader("Upload gambar stego", type=["png", "jpg", "jpeg"], key="steg_file_widget")
-            submitted = st.form_submit_button("Ekstrak Teks")
-            if submitted and stego_file:
-                try:
-                    stego_img = Image.open(stego_file)
-                    st.session_state.extracted_text_data = decode_text(stego_img)
-                    st.success("Teks berhasil diekstrak!")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-        
-        if st.session_state.extracted_text_data is not None:
-            st.text_area("Teks Rahasia:", value=st.session_state.extracted_text_data, height=200, disabled=True, key="steg_res_widget")
+with col2:
+    st.subheader("2. Ekstrak Teks (Dekripsi)")
 
+    use_password_extract = st.radio("Apakah Teks Dienkripsi?", ["Tidak", "Ya"], horizontal=True, key="extract_radio")
+    extract_password = ""
+    if use_password_extract == "Ya":
+        extract_password = st.text_input("Masukkan Password Dekripsi", type="password", key="extract_pw")
+
+    stego_file = st.file_uploader("Upload gambar stego", type=["png", "jpg", "jpeg"], key="steg_file_widget")
+
+    if st.button("Ekstrak Teks"):
+        if stego_file:
+            try:
+                stego_img = Image.open(stego_file)
+                extracted_text_raw = decode_text(stego_img)
+
+                if use_password_extract == "Ya":
+                    try:
+                        encrypted_bytes = base64.b64decode(extracted_text_raw.encode("utf-8"))
+                        decrypted_bytes = decrypt_image(encrypted_bytes, extract_password)
+                        extracted_text = decrypted_bytes.decode('utf-8', errors='ignore')
+                    except Exception as e:
+                        extracted_text = f"[Gagal dekripsi]: {e}"
+                else:
+                    extracted_text = extracted_text_raw
+
+                st.session_state.extracted_text_data = extracted_text
+                st.success("Teks berhasil diekstrak!")
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.warning("Silakan upload gambar stego terlebih dahulu.")
+
+    if st.session_state.extracted_text_data is not None:
+        st.text_area("Teks Rahasia:", value=st.session_state.extracted_text_data, height=200, disabled=True)
 
 # --- Tab 3: Kalkulator PSNR ---
 with tab3:

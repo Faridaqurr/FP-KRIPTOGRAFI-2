@@ -1,5 +1,6 @@
 from PIL import Image
 
+# Tanda akhir pesan yang unik untuk memastikan kita berhenti di tempat yang tepat
 DELIMITER = "11111111" + "11110000" + "00001111"  
 DELIMITER_LEN = len(DELIMITER)
 
@@ -10,14 +11,13 @@ def text_to_bits(text: str) -> str:
 def bits_to_text(bits: str) -> str:
     """Mengubah string bit kembali menjadi teks."""
     byte_chunks = [bits[i:i + 8] for i in range(0, len(bits), 8)]
-    # Filter out chunks that are not 8 bits long
     valid_chunks = [b for b in byte_chunks if len(b) == 8]
     byte_list = [int(b, 2) for b in valid_chunks]
     
     try:
         return bytes(byte_list).decode('utf-8', 'ignore')
     except (ValueError, TypeError):
-        return "" # Return empty string on error
+        return ""
 
 def image_to_bits(image: Image.Image) -> str:
     """Mengubah gambar (mode '1') menjadi string bit, termasuk ukurannya."""
@@ -86,7 +86,6 @@ def _decode(stego_image: Image.Image) -> str:
     
     pixels = stego.getdata()
     for r, g, b in pixels:
-        # Ekstrak 3 bit dari piksel
         bits = str(r & 1) + str(g & 1) + str(b & 1)
         
         for bit in bits:
@@ -99,6 +98,7 @@ def _decode(stego_image: Image.Image) -> str:
             
             # Cek jika buffer sama dengan delimiter
             if buffer == DELIMITER:
+                # Delimiter ditemukan. Kembalikan semua bit SEBELUM delimiter.
                 final_message_len = len(message_bits) - DELIMITER_LEN
                 return "".join(message_bits[:final_message_len])
                 
