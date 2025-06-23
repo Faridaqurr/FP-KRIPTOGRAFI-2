@@ -266,8 +266,11 @@ elif selected_tab == "Analisis Kualitas (PSNR)":
                     with res_col1:
                         st.metric(label="Skor Kemiripan", value=f"{similarity:.2f} %", help="Skor 100% berarti gambar identik.")
                     with res_col2:
-                        psnr_display = "∞ (Identik)" if psnr_value == float('inf') else f"{psnr_value:.2f} dB"
-                        st.metric(label="PSNR (Standar)", value=psnr_display, help="Semakin tinggi semakin baik. > 40 dB dianggap istimewa.")
+                        if psnr_value == float('inf'):
+                            psnr_display = "∞ (Identik)"
+                        else:
+                            psnr_display = f"{psnr_value:.2f} dB"
+                    st.metric(label="PSNR (Standar)", value=psnr_display, help="Semakin tinggi semakin baik. > 40 dB dianggap istimewa.")
                     with res_col3:
                         st.metric(label="MSE (Error)", value=f"{mse_value:.4f}", help="Semakin rendah semakin baik. 0 berarti sempurna.")
 
