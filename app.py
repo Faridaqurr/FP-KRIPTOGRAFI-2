@@ -33,7 +33,7 @@ def reset_wm_state():
 try:
     from visual_crypto import create_color_shares, combine_color_shares
     from stegano import encode_text, decode_text
-    from metrics import calculate_psnr
+    from metrics import calculate_metrics
     from watermark import add_image_watermark, add_text_watermark
 except ImportError as e:
     st.error(f"Gagal mengimpor modul: {e}. Pastikan semua file .py ada.")
@@ -199,31 +199,81 @@ with tab2:
     if st.session_state.extracted_text_data is not None:
         st.text_area("Teks Rahasia:", value=st.session_state.extracted_text_data, height=200, disabled=True)
 
-# --- Tab 3: Kalkulator PSNR ---
+# --- Tab 3: Kalkulator PSNR (DIPERBARUI) ---
 with tab3:
-    st.header("Analisis Kualitas Gambar (PSNR)")
-    st.info("""...""")
+    st.header("Analisis Kualitas Gambar (PSNR, MSE & Skor Kemiripan)")
+    st.info("""
+    Menganalisis perbedaan antara gambar asli dan gambar hasil olahan menggunakan tiga metrik utama:
+    - **Skor Kemiripan:** Representasi linear dari 0-100% seberapa identik kedua gambar.
+    - **PSNR (Standar):** Metrik logaritmik standar industri. Semakin tinggi nilainya, semakin baik kualitasnya.
+    - **MSE (Error):** Rata-rata error per piksel. Semakin rendah nilainya, semakin baik.
+    """)
+    st.subheader("Panduan Interpretasi Nilai PSNR")
+    st.markdown("""
+    - **∞ (Tak Terhingga):** :green[**Sempurna.**] Gambar 100% identik.
+    - **> 40 dB:** :green[**Istimewa.**] Kualitas sangat tinggi, perbedaan hampir tidak mungkin dilihat oleh mata manusia.
+    - **30 - 40 dB:** :blue[**Baik.**] Kualitas dapat diterima, namun perbedaan mungkin terlihat jika diamati teliti.
+    - **< 30 dB:** :orange[**Cukup/Kurang.**] Perbedaan atau distorsi mulai terlihat jelas.
+    """)
+    with st.expander("ℹ️ Kenapa tidak bisa menghitung PSNR untuk hasil Kriptografi Visual?"):
+        st.write("""
+        Metode Kriptografi Visual memperluas setiap piksel asli menjadi blok piksel yang lebih besar. Akibatnya, resolusi gambar hasil gabungan menjadi lebih besar dari aslinya, sehingga perbandingan piksel-demi-piksel tidak dapat dilakukan.
+        """)
+
     with st.form("psnr_form"):
-        original_file = st.file_uploader("1. Upload Gambar Asli (Cover)", type=["png", "bmp", "jpg", "jpeg"])
-        stego_file = st.file_uploader("2. Upload Gambar Hasil Steganografi (Stego)", type=["png", "bmp", "jpg", "jpeg"])
-        submitted = st.form_submit_button("Hitung PSNR")
+        col1, col2 = st.columns(2)
+        with col1:
+            original_file = st.file_uploader("1. Upload Gambar Asli (Cover)", type=["png", "bmp", "jpg", "jpeg"])
+        with col2:
+            stego_file = st.file_uploader("2. Upload Gambar Hasil Olahan", type=["png", "bmp", "jpg", "jpeg"])
+        
+        submitted = st.form_submit_button("Hitung Metrik Kualitas")
+        
         if submitted and original_file and stego_file:
             try:
-                original_img = Image.open(original_file).convert("RGB")
-                stego_img = Image.open(stego_file).convert("RGB")
+                original_img = Image.open(original_file)
+                stego_img = Image.open(stego_file)
+                
                 if original_img.size != stego_img.size:
-                    st.error("Error: Ukuran kedua gambar harus sama untuk menghitung PSNR.")
+                    st.error(f"**Ukuran Gambar Tidak Cocok!**\n- Gambar Asli: {original_img.size}\n- Gambar Hasil: {stego_img.size}")
                 else:
-                    col1, col2 = st.columns(2)
-                    with col1: st.image(original_img, caption="Gambar Asli", use_column_width=True)
-                    with col2: st.image(stego_img, caption="Gambar Stego", use_column_width=True)
-                    with st.spinner("Menghitung PSNR..."):
-                        psnr_value = calculate_psnr(original_img, stego_img)
-                        st.success(f"**Nilai PSNR: {psnr_value:.2f} dB**")
-                        if psnr_value > 35: st.balloons(); st.markdown("#### Kualitas: :green[Sangat Baik]")
-                        elif psnr_value > 30: st.markdown("#### Kualitas: :blue[Baik]")
-                        else: st.markdown("#### Kualitas: :orange[Cukup (Perbedaan mungkin terlihat)]")
-            except Exception as e: st.error(f"Terjadi kesalahan: {e}")
+                    img_col1, img_col2 = st.columns(2)
+                    img_col1.image(original_img, caption="Gambar Asli", use_container_width=True)
+                    img_col2.image(stego_img, caption="Gambar Hasil Olahan", use_container_width=True)
+                    
+                    with st.spinner("Menghitung metrik..."):
+                        metrics = calculate_metrics(original_img, stego_img)
+                        psnr_value = metrics['psnr']
+                        mse_value = metrics['mse']
+                        similarity = metrics['similarity_score']
+                    
+                    st.success("Perhitungan Selesai!")
+                    
+                    # Tampilkan 3 metrik dalam 3 kolom
+                    res_col1, res_col2, res_col3 = st.columns(3)
+                    with res_col1:
+                        st.metric(label="Skor Kemiripan", value=f"{similarity:.2f} %", help="Skor 100% berarti gambar identik.")
+                    with res_col2:
+                        psnr_display = "∞ (Identik)" if psnr_value == float('inf') else f"{psnr_value:.2f} dB"
+                        st.metric(label="PSNR (Standar)", value=psnr_display, help="Semakin tinggi semakin baik. > 40 dB dianggap istimewa.")
+                    with res_col3:
+                        st.metric(label="MSE (Error)", value=f"{mse_value:.4f}", help="Semakin rendah semakin baik. 0 berarti sempurna.")
+
+                    # --- LOGIKA INTERPRETASI YANG DISERDEHANAKAN DAN KONSISTEN ---
+                    if psnr_value == float('inf'):
+                        st.balloons()
+                        st.markdown("#### Kualitas: :green[Sempurna]")
+                    elif psnr_value > 40:
+                        st.markdown("#### Kualitas: :green[Istimewa]")
+                    elif psnr_value > 30:
+                        st.markdown("#### Kualitas: :blue[Baik]")
+                    else:
+                        st.markdown("#### Kualitas: :orange[Cukup/Kurang]")
+
+            except Exception as e:
+                st.error(f"Terjadi kesalahan: {e}")
+        elif submitted:
+            st.warning("Harap unggah kedua gambar.")
 
 # --- Tab 4: Watermarking ---
 with tab4:
