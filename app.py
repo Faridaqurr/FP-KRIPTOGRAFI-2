@@ -10,15 +10,14 @@ import zipfile
 SECRET_UPLOADER_KEY_BASE = "vc_secret_uploader"
 SHARES_UPLOADER_KEY_BASE = "vc_shares_upload"
 
-# Inisialisasi session state (dibersihkan dari kunci lama)
 if 'vc_shares_list' not in st.session_state: st.session_state.vc_shares_list = None
 if 'vc_result_data_color' not in st.session_state: st.session_state.vc_result_data_color = None
 if 'stego_text_img_data' not in st.session_state: st.session_state.stego_text_img_data = None
 if 'extracted_text_data' not in st.session_state: st.session_state.extracted_text_data = None
 if 'watermarked_image_data' not in st.session_state: st.session_state.watermarked_image_data = None
 if 'uploader_version' not in st.session_state: st.session_state.uploader_version = 0
+if 'selected_tab' not in st.session_state: st.session_state.selected_tab = ""
 
-# --- FUNGSI BANTU ---
 def reset_vc_output_state():
     st.session_state.vc_shares_list = None
     st.session_state.vc_result_data_color = None
@@ -29,6 +28,13 @@ def reset_stego_state():
 
 def reset_wm_state():
     st.session_state.watermarked_image_data = None
+
+def handle_tab_change(tab_name):
+    if st.session_state.selected_tab != tab_name:
+        reset_vc_output_state()
+        reset_stego_state()
+        reset_wm_state()
+        st.session_state.selected_tab = tab_name
 
 try:
     from visual_crypto import create_color_shares, combine_color_shares
@@ -42,15 +48,19 @@ except ImportError as e:
 st.set_page_config(page_title="Pusat Kriptografi & Citra", layout="wide")
 st.title("🔐 Pusat Kriptografi, Steganografi & Pengolahan Citra")
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab_labels = [
     "Kriptografi Visual",
     "Steganografi Teks",
     "Analisis Kualitas (PSNR)",
     "Watermarking Visual"
-])
+]
+
+selected_tab = st.radio("Pilih Menu", tab_labels, key="selected_tab_radio", horizontal=True)
+handle_tab_change(selected_tab)
 
 # --- Tab 1: Kriptografi Visual (Versi Baru) ---
-with tab1:
+if selected_tab == "Kriptografi Visual":
+    handle_tab_change(selected_tab)
     st.header("Metode Kriptografi Visual")
     st.info("""
     Memecah gambar menjadi beberapa 'shares'. Gambar asli hanya terlihat jika SEMUA shares digabungkan.
@@ -141,7 +151,8 @@ with tab1:
             st.download_button("⬇️ Download Hasil", buf, "reconstructed.png", "image/png", key="vc_dl_res")
 
 # --- Tab 2: Steganografi Teks ---
-with tab2:
+elif selected_tab == "Steganografi Teks":
+    handle_tab_change(selected_tab)
     st.header("Metode Steganografi Teks")
     st.info("Menyembunyikan teks rahasia di dalam gambar.")
     col1, col2 = st.columns(2, gap="large")
@@ -200,7 +211,8 @@ with tab2:
         st.text_area("Teks Rahasia:", value=st.session_state.extracted_text_data, height=200, disabled=True)
 
 # --- Tab 3: Kalkulator PSNR (DIPERBARUI) ---
-with tab3:
+elif selected_tab == "Analisis Kualitas (PSNR)":
+    handle_tab_change(selected_tab)
     st.header("Analisis Kualitas Gambar (PSNR, MSE & Skor Kemiripan)")
     st.info("""
     Menganalisis perbedaan antara gambar asli dan gambar hasil olahan menggunakan tiga metrik utama:
@@ -276,7 +288,8 @@ with tab3:
             st.warning("Harap unggah kedua gambar.")
 
 # --- Tab 4: Watermarking ---
-with tab4:
+elif selected_tab == "Watermarking Visual":
+    handle_tab_change(selected_tab)
     st.header("Watermarking Visual")
     st.info("Sisipkan logo atau teks transparan ke dalam gambar Anda untuk menandai kepemilikan.")
     base_file = st.file_uploader("1. Upload Gambar Utama", type=["png", "bmp", "jpg", "jpeg"], key="wm_base_widget")
